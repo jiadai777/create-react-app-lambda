@@ -1,54 +1,68 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
+import React, {Component} from 'react';
+import { BrowserRouter as Router, Route} from 'react-router-dom';
 import './App.css';
+import Header from './Components/layout/Header';
+import Todos from './Components/Todos';
+import AddTodo from './Components/AddTodo';
+import About from './Components/pages/About';
+// import uuid from 'uuid';
+import axios from 'axios';
 
-class LambdaDemo extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { loading: false, msg: null };
-  }
-
-  handleClick = api => e => {
-    e.preventDefault();
-
-    this.setState({ loading: true });
-    fetch('/.netlify/functions/' + api)
-      .then(response => response.json())
-      .then(json => this.setState({ loading: false, msg: json.msg }));
-  };
-
-  render() {
-    const { loading, msg } = this.state;
-
-    return (
-      <p>
-        <button onClick={this.handleClick('hello')}>
-          {loading ? 'Loading...' : 'Call Lambda'}
-        </button>
-        <button onClick={this.handleClick('async-chuck-norris')}>
-          {loading ? 'Loading...' : 'Call Async Lambda'}
-        </button>
-        <br />
-        <span>{msg}</span>
-      </p>
-    );
-  }
-}
 
 class App extends Component {
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <LambdaDemo />
-        </header>
-      </div>
-    );
-  }
+    state = {
+        todos: [
+            
+        ]
+    }
+
+    componentDidMount() {
+        axios.get('https://jsonplaceholder.typicode.com/todos?_limit=10').then(res => this.setState({todos: res.data}));
+    }
+
+    // Toggle Complete
+    markComplete = (id) => {
+        this.setState({ todos: this.state.todos.map(todo => {
+            if (todo.id == id) {
+                todo.completed = !todo.completed;
+            }
+            return todo;
+        })})
+    }
+
+    //Delete Todo
+    delTodo = (id) => {
+        axios.delete('https://jsonplaceholder.typicode.com/todos/${id}').then(res => this.setState({ todos: [...this.state.todos.filter(todo => todo.id !== id)]}));
+        
+    }
+
+    //Add Todo
+    addTodo = (title) => {
+        axios.post('https://jsonplaceholder.typicode.com/todos', {
+            title,
+            completed: false
+        }).then(res => this.setState({todos: [...this.state.todos, res.data]}));
+        
+    }
+
+    render() {
+        return ( 
+            <Router>
+                <div className = "App">
+                    <div className="container">
+                        <Header />
+                        <Route exact path="/" render={props => (
+                            <React.Fragment>
+                                <AddTodo addTodo={this.addTodo}/>
+                                <Todos todos={this.state.todos} markComplete={this.markComplete} delTodo={this.delTodo} />
+                            </React.Fragment>
+                        )} />
+                        <Route exact path="/about" component={About} />
+                    </div>
+                </div>
+            </Router>
+        );
+    }
 }
 
 export default App;
